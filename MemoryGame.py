@@ -17,7 +17,7 @@ card_bear = pygame.image.load("./resources/cardBear.png").convert_alpha()
 
 cardSize = card_back.get_rect().size
 
-allcards = [card_fox, card_dachshund, card_moose, card_bear]
+allCardsList = [card_fox, card_dachshund, card_moose, card_bear]
 
 class Card:
     def __init__(self, x, y, picture):
@@ -32,6 +32,12 @@ class Card:
             if click[0] == 1:
                 self.card = self.pic
 
+    def ifClicked(self):  # Not sure if it is important
+        if self.card == self.pic:
+            return True
+        else:
+            return False
+
     def drawCard(self, scren):
         scren.blit(self.card, [self.x, self.y])
 
@@ -40,24 +46,9 @@ class Cards:
         self.cards1 = []
         self.cards2 = []
 
-    def makeGrid(self):
-        gridList = []
-
-        for i in range(4):  # cards in vertical |
-            y = 80 + (i*10)
-            y += i*cardSize[1]
-            for j in range(6):  # cards in horizontal --
-                x = 30 + (j*10)
-                x += j*cardSize[0]
-                f = x, y
-                gridList.append(f)
-
-        random.shuffle(gridList)
-        return gridList
-
     def board(self):  # TODO: Find if there is any bugs and check if it works correctly
-        coordinates = self.makeGrid()
-        for card in allcards:
+        coordinates = makeGrid()
+        for card in allCardsList:
             position = random.randint(0, len(coordinates)-1)
             self.cards1.append(Card(coordinates[position][0], coordinates[position][1], card))
             coordinates.pop(position)
@@ -77,12 +68,25 @@ class Cards:
         for draw2 in self.cards2:
             draw2.drawCard(display)
 
+def makeGrid():
+    gridList = []
+
+    for i in range(4):  # cards in vertical |
+        y = 80 + (i*10)
+        y += i*cardSize[1]
+        for j in range(6):  # cards in horizontal --
+            x = 30 + (j*10)
+            x += j*cardSize[0]
+            f = x, y
+            gridList.append(f)
+
+    random.shuffle(gridList)
+    return gridList
 
 def playGame():
     pass
 
 kaartid = Cards()  # For testing
-kaartid.makeGrid()
 kaartid.board()
 
 while True:
