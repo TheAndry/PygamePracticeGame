@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+import sys, random, time
+import pygame
 
-import pygame, sys, random, time
+
+__author__ = ("Andry Kõre")
 
 pygame.init()
-
 WIDTH = 890
 HEIGHT = 660
 gameScreen = pygame.display.set_mode([WIDTH, HEIGHT])
-
 pygame.display.set_caption('MemoryGame')
 time = pygame.time.Clock()
 
@@ -26,7 +27,7 @@ allCardsList = [card_fox, card_dachshund]  # card_bear, card_moose Removed for t
 
 
 def Text(screen, text, size, color, coords):
-    lfont = pygame.font.SysFont(None, size)
+    lfont = pygame.font.SysFont('Arial Bold', size)
     labl = lfont.render(text, 1, color)
     screen.blit(labl, coords)
 
@@ -56,6 +57,43 @@ class Card:
         scren.blit(self.card, [self.x, self.y])
 
 
+class Button:
+    def __init__(self, xpos, ypos, height, width, buttontext, regularcolor, hovercolor, clickcolor, function, textfont):
+        self.function = function
+        self.buttontext = buttontext
+        self.currentcolor = regularcolor
+        self.clickcolor = clickcolor
+        self.hovercolor = hovercolor
+        self.regularcolor = regularcolor
+        self.width = width
+        self.height = height
+        self.ypos = ypos
+        self.xpos = xpos
+        self.commenceaction = False
+        self.font = pygame.font.SysFont(textfont, 30)
+        self.textcontent = self.font.render(self.buttontext, 1, (10, 10, 10))
+        self.textposition = pygame.Rect((self.xpos, self.ypos), (self.width, self.height))
+        self.textposition[0] = self.xpos + ((self.width - self.textcontent.get_width()) / 2)
+        self.textposition[1] = self.ypos + ((self.width - self.textcontent.get_height()) / 6)
+
+    def mousemovement(self, position, key):
+        if self.xpos < position[0] < self.xpos + self.width and self.ypos < position[1] < self.ypos + self.height:
+            if key[0]:
+                self.currentcolor = self.clickcolor
+                self.commenceaction = True
+            else:
+                self.currentcolor = self.hovercolor
+                if self.commenceaction:
+                    self.function()
+                    self.commenceaction = False
+        else:
+            self.currentcolor = self.regularcolor
+
+    def drawbutton(self, scren):
+        pygame.draw.rect(scren, self.currentcolor, pygame.Rect((self.xpos, self.ypos), (self.width, self.height)))
+        scren.blit(self.textcontent, self.textposition)
+
+
 class Cards:
     def __init__(self):
         self.cards = []
@@ -80,6 +118,19 @@ class Cards:
             draw.drawCard(display)
 
 
+class Allbuttons:
+    def __init__(self, allthebuttons):
+        self.buttons = allthebuttons
+
+    def drawbutton(self, scren):
+        for button in self.buttons:
+            button.drawbutton(scren)
+
+    def mousemovement(self, position, key):
+        for button in self.buttons:
+            button.mousemovement(position, key)
+
+
 class Status():
     menu = 1
     game = 2
@@ -91,6 +142,7 @@ class Game:
     def __init__(self, screen):
         self.currentStatus = Status.menu
         self.currentScreen = screen
+        self.screenRect = self.currentScreen.get_rect()
         self.cards = Cards()
         self.openedCards = []
         self.mouseClicks = []
@@ -113,7 +165,13 @@ class Game:
         return gridList
 
     def showMenu(self):
+        global buttons
         self.currentStatus = Status.menu
+        buttons = Allbuttons([
+            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-80, 40, 100, "PLAY", (0,210,00), (10,240,110), (160,245,225), game.startGame, 'Arial Bold'),  # Küsi, kuidas skippida mõndasid osasid funktsioonis
+            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-30, 40, 100, "INFO", (0,210,00), (10,240,110), (160,245,225), game.showMenu, 'Arial Bold'),
+            Button(self.screenRect.centerx-(100/2), self.screenRect.centery+20, 40, 100, "EXIT", (0,210,00), (10,240,110), (160,245,225), game.quitGame, 'Arial Bold')
+            ])
         #pygame.mixer.music.stop()
         #pygame.mixer.music.load(BACKGROUND MUSIC)
         #pygame.mixer.music.play(-1)
@@ -139,6 +197,10 @@ class Game:
         #sound.play()
         #pygame.mixer.music.stop()
 
+    def quitGame(self):
+        pygame.quit()
+        sys.exit()
+
     def turnCards(self):
         if len(self.mouseClicks) == 2:
             pygame.display.flip()
@@ -156,12 +218,13 @@ class Game:
             self.gameEnd()
 
     def updateScreen(self):
+        global buttons
         if self.currentStatus == Status.menu:
             self.currentScreen.blit(menu_image, (0, 0))
-            Text(self.currentScreen, 'Press ENTER', 70, (0, 205, 0), (445, 200))
+            buttons.drawbutton(self.currentScreen)
             pygame.display.flip()
 
-        if self.currentStatus == Status.game:  # Make time tick
+        elif self.currentStatus == Status.game:  # Make time tick
             self.currentScreen.fill([255, 220, 153])
             pygame.draw.line(self.currentScreen, [0, 0, 0], [0, 70], [WIDTH, 70])
             self.cards.drawBoard(self.currentScreen)
@@ -170,13 +233,13 @@ class Game:
 
             pygame.display.flip()
 
-        if self.currentStatus == Status.end:  # TODO: Make green fade
+        elif self.currentStatus == Status.end:  # TODO: Make green fade
             pygame.time.wait(600)
             self.currentScreen.fill([0, 207, 0])
             Text(self.currentScreen, 'Game completed!', 70, (0, 0, 0), (0, 0))
             pygame.display.flip()
 
-        if self.currentStatus == Status.pause:
+        elif self.currentStatus == Status.pause:
             pass
 
 
@@ -184,20 +247,16 @@ game = Game(gameScreen)
 game.showMenu()
 
 while True:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
         if game.currentStatus == Status.menu:
-            if event.type == pygame.QUIT:
-                sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    game.startGame()
+            if event.type == pygame.MOUSEMOTION or event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.MOUSEBUTTONUP:
+                buttons.mousemovement(pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
-        if game.currentStatus == Status.game:
+        elif game.currentStatus == Status.game:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 game.cards.mouse(pygame.mouse.get_pos(), pygame.mouse.get_pressed())
 
