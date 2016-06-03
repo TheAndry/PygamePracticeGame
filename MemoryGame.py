@@ -18,12 +18,13 @@ card_fox = pygame.image.load('./resources/cardFox.png').convert_alpha()
 card_dachshund = pygame.image.load('./resources/cardDachshund.png').convert_alpha()
 card_moose = pygame.image.load('./resources/cardMoose.png').convert_alpha()
 card_bear = pygame.image.load('./resources/cardBear.png').convert_alpha()
-menu_image = pygame.image.load('./resources/gameMenu.png').convert()
+menu_image = pygame.image.load('./resources/gameMenu.png').convert()  # TODO: Link trophy to info tab
+end_image = pygame.image.load('./resources/gameEnd.png').convert() # Trophy- http://www.flaticon.com/free-icon/trophy_147210
 memory_text = pygame.image.load('./resources/memoryGameText.png').convert_alpha()
 
 cardSize = card_back.get_rect().size
 
-allCardsList = [card_fox ] # card_dachshund, card_bear, card_moose
+allCardsList = [card_fox, card_dachshund, card_bear, card_moose]
 
 
 def Text(screen, text, size, color, coords):
@@ -150,11 +151,12 @@ class Status():
     game = 2
     fade = 3
     end = 4
+    info = 5
 
 
 class Game:
     def __init__(self, screen):  # TODO: Make this area better
-        global mouseClicks, openedCards
+        global mouseClicks, openedCards  # TODO: Read about global
         self.currentStatus = Status.menu
         self.currentScreen = screen
         self.screenRect = self.currentScreen.get_rect()
@@ -170,7 +172,7 @@ class Game:
         self.clock2 = pygame.time.Clock()
         self.clock3 = pygame.time.Clock()
         self.surface = pygame.Surface((WIDTH, HEIGHT))
-        self.surface.fill((0, 255, 0))
+        self.surface.fill((0, 200, 0))
         self.surfaceAlpha = 0
         self.ajutised_ajad = []
         openedCards = []
@@ -249,9 +251,9 @@ class Game:
         del openedCards[:]
         del mouseClicks[:]
         buttons = Allbuttons([
-            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-80, 40, 100, 'PLAY', (0,210,00), (10,240,110), (160,245,225), self.startGame),
-            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-30, 40, 100, 'INFO', (0,210,00), (10,240,110), (160,245,225), self.showMenu),  # TODO: Make info tab
-            Button(self.screenRect.centerx-(100/2), self.screenRect.centery+20, 40, 100, 'EXIT', (0,210,00), (10,240,110), (160,245,225), self.quitGame)
+            Button(self.screenRect.centerx-50, self.screenRect.centery-80, 40, 100, 'PLAY', (0,210,0), (10,240,110), (160,245,225), self.startGame),
+            Button(self.screenRect.centerx-50, self.screenRect.centery-30, 40, 100, 'INFO', (0,210,0), (10,240,110), (160,245,225), self.infoTab),  # TODO: Make info tab
+            Button(self.screenRect.centerx-50, self.screenRect.centery+20, 40, 100, 'EXIT', (0,210,0), (10,240,110), (160,245,225), self.quitGame)
             ])
         #pygame.mixer.music.stop()
         #pygame.mixer.music.load(BACKGROUND MUSIC)
@@ -269,6 +271,13 @@ class Game:
         #pygame.mixer.music.stop()
         #pygame.mixer.music.load(BACKGROUND MUSIC WHILE PLAYING)
         #pygame.mixer.music.play(-1)
+
+    def infoTab(self):
+        global buttons
+        self.currentStatus = Status.info
+        buttons = Allbuttons([
+            Button(self.screenRect.centerx-50, 600, 40, 100, 'BACK', (0,210,0), (10,240,110), (160,245,225), self.showMenu),
+        ])
 
     def goPause(self):
         global pause
@@ -292,9 +301,9 @@ class Game:
         global buttons, clickableButton
         self.currentStatus = Status.end
         clickableButton = True
-        print(self.ajutised_ajad)
         buttons = Allbuttons([
-            Button(100, 100, 30, 70, 'To menu', (0,210,00), (10,240,110), (160,245,225), game.showMenu, 26)
+            Button(self.screenRect.centerx-135, 580, 40, 90, 'MENU', (0,200,0), (10,240,110), (160,245,225), self.showMenu),
+            Button(self.screenRect.centerx+45, 580, 40, 90, 'EXIT', (0,200,0), (10,240,110), (160,245,225), self.quitGame)
         ])
         #sound = pygame.mixer.Sound(GAME END SOUND)
         #sound.play()
@@ -311,6 +320,13 @@ class Game:
         if self.currentStatus == Status.menu:
             self.currentScreen.blit(menu_image, (0, 0))
             buttons.drawbutton(self.currentScreen)
+            pygame.display.flip()
+
+        elif self.currentStatus == Status.info:
+            self.currentScreen.fill([255, 220, 153])
+            buttons.drawbutton(self.currentScreen)
+            self.currentScreen.blit(memory_text, (self.screenRect.centerx-120, 20))
+            Text(self.currentScreen, 'INFO', 40, (0, 0, 0), (self.screenRect.centerx-20, 75))
             pygame.display.flip()
 
         elif self.currentStatus == Status.game or self.currentStatus == Status.fade:  # Make time tick
@@ -331,9 +347,11 @@ class Game:
             self.currentScreen.fill([255, 220, 153])
 
         elif self.currentStatus == Status.end:
-            self.currentScreen.fill([0, 255, 0])
+            self.currentScreen.blit(end_image, (0, 0))
             buttons.drawbutton(self.currentScreen)
-            Text(self.currentScreen, 'Game completed!', 70, (0, 0, 0), (0, 0))
+            Text(self.currentScreen, 'Your time: '+str(round(self.ajutised_ajad[-1], 1)), 40, (0, 200, 0), (self.screenRect.centerx-90, 400))
+            Text(self.currentScreen, 'Best time: '+str(round(min(self.ajutised_ajad), 1)), 40, (200, 0, 0), (self.screenRect.centerx-90, 450))
+
             pygame.display.flip()
 
 
