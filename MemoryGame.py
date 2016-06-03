@@ -10,7 +10,6 @@ WIDTH = 890
 HEIGHT = 660
 gameScreen = pygame.display.set_mode([WIDTH, HEIGHT])
 pygame.display.set_caption('MemoryGame')
-time = pygame.time.Clock()
 
 # TODO: Try to make image thing better
 '''Pictures from https://pixabay.com/'''  # TODO: Need 12 cards
@@ -24,7 +23,7 @@ memory_text = pygame.image.load('./resources/memoryGameText.png').convert_alpha(
 
 cardSize = card_back.get_rect().size
 
-allCardsList = [card_fox, card_dachshund, card_bear, card_moose]
+allCardsList = [card_fox ] # card_dachshund, card_bear, card_moose
 
 
 def Text(screen, text, size, color, coords):
@@ -68,6 +67,7 @@ class Card:
 
 class Button:
     def __init__(self, xpos, ypos, height, width, buttontext, regularcolor, hovercolor, clickcolor, function, size=30, textfont='Arial Bold'):
+        global clickableButton
         self.function = function
         self.buttontext = buttontext
         self.currentcolor = regularcolor
@@ -84,19 +84,21 @@ class Button:
         self.textposition = pygame.Rect((self.xpos, self.ypos), (self.width, self.height))
         self.textposition[0] = self.xpos + ((self.width - self.textcontent.get_width()) / 2)
         self.textposition[1] = self.ypos + ((self.width - self.textcontent.get_height()) / 6)
+        clickableButton = True
 
     def mousemovement(self, position, key):
-        if self.xpos < position[0] < self.xpos + self.width and self.ypos < position[1] < self.ypos + self.height:
-            if key[0]:
-                self.currentcolor = self.clickcolor
-                self.commenceaction = True
+        if clickableButton:
+            if self.xpos < position[0] < self.xpos + self.width and self.ypos < position[1] < self.ypos + self.height:
+                if key[0]:
+                    self.currentcolor = self.clickcolor
+                    self.commenceaction = True
+                else:
+                    self.currentcolor = self.hovercolor
+                    if self.commenceaction:
+                        self.function()
+                        self.commenceaction = False
             else:
-                self.currentcolor = self.hovercolor
-                if self.commenceaction:
-                    self.function()
-                    self.commenceaction = False
-        else:
-            self.currentcolor = self.regularcolor
+                self.currentcolor = self.regularcolor
 
     def drawbutton(self, scren):
         pygame.draw.rect(scren, self.currentcolor, pygame.Rect((self.xpos, self.ypos), (self.width, self.height)))
@@ -146,30 +148,35 @@ class Allbuttons:
 class Status():
     menu = 1
     game = 2
-    end = 3
-    pause = 4
+    fade = 3
+    end = 4
 
 
 class Game:
-    def __init__(self, screen):
+    def __init__(self, screen):  # TODO: Make this area better
         global mouseClicks, openedCards
         self.currentStatus = Status.menu
         self.currentScreen = screen
         self.screenRect = self.currentScreen.get_rect()
         self.cards = Cards()
-        self.gameBackground = None  # TODO: Make background or not?
         self.correct = None
         self.clickNow = 0
         self.t1 = 0
         self.playtime = 0
         self.clickedTime = 0
+        self.addTime = False
+        self.timerPause = False
         self.clock = pygame.time.Clock()
         self.clock2 = pygame.time.Clock()
         self.clock3 = pygame.time.Clock()
+        self.surface = pygame.Surface((WIDTH, HEIGHT))
+        self.surface.fill((0, 255, 0))
+        self.surfaceAlpha = 0
+        self.ajutised_ajad = []
         openedCards = []
         mouseClicks = []
 
-    def makeGrid(self):  # Think where to put this
+    def makeGrid(self):
         gridList = []
 
         for i in range(4):  # cards in vertical |
@@ -215,16 +222,20 @@ class Game:
 
     def ifOpened(self):
         if len(openedCards) == len(allCardsList)*2:
-            self.gameEnd()
+            if not self.addTime:
+                self.ajutised_ajad.append(self.playtime)
+                self.addTime = True
+            self.currentStatus = Status.fade
 
     def timer(self):
-        if pause:
-            self.t1 = self.clock2.tick()
-        else:
-            milliseconds = (self.now - self.t1)
-            seconds = milliseconds / 1000
-            self.playtime += seconds
-            self.t1 = 0
+        if not self.timerPause:
+            if pause:
+                self.t1 = self.clock2.tick()
+            else:
+                milliseconds = (self.now - self.t1)
+                seconds = milliseconds / 1000
+                self.playtime += seconds
+                self.t1 = 0
 
     def showMenu(self):
         global buttons
@@ -232,10 +243,13 @@ class Game:
         self.cards.clearList()
         self.playtime = 0
         self.correct = None
+        self.addTime = False
+        self.timerPause = False
+        self.surfaceAlpha = 0
         del openedCards[:]
         del mouseClicks[:]
         buttons = Allbuttons([
-            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-80, 40, 100, 'PLAY', (0,210,00), (10,240,110), (160,245,225), self.startGame),  # Küsi, kuidas skippida mõndasid osasid funktsioonis
+            Button(self.screenRect.centerx-(100/2), self.screenRect.centery-80, 40, 100, 'PLAY', (0,210,00), (10,240,110), (160,245,225), self.startGame),
             Button(self.screenRect.centerx-(100/2), self.screenRect.centery-30, 40, 100, 'INFO', (0,210,00), (10,240,110), (160,245,225), self.showMenu),  # TODO: Make info tab
             Button(self.screenRect.centerx-(100/2), self.screenRect.centery+20, 40, 100, 'EXIT', (0,210,00), (10,240,110), (160,245,225), self.quitGame)
             ])
@@ -264,9 +278,21 @@ class Game:
             pause = True
         #pygame.mixer.music.pause()
 
+    def goFade(self):
+        global clickableButton
+        self.surfaceAlpha = min(255, self.surfaceAlpha + (self.now/1000) * 210)
+        self.surface.set_alpha(self.surfaceAlpha)
+        self.currentScreen.blit(self.surface, (0, 0))
+        self.timerPause = True
+        clickableButton = False
+        if self.surfaceAlpha == 255:
+            self.gameEnd()
+
     def gameEnd(self):
-        global buttons
+        global buttons, clickableButton
         self.currentStatus = Status.end
+        clickableButton = True
+        print(self.ajutised_ajad)
         buttons = Allbuttons([
             Button(100, 100, 30, 70, 'To menu', (0,210,00), (10,240,110), (160,245,225), game.showMenu, 26)
         ])
@@ -287,24 +313,25 @@ class Game:
             buttons.drawbutton(self.currentScreen)
             pygame.display.flip()
 
-        elif self.currentStatus == Status.game:  # Make time tick
-            self.currentScreen.fill([255, 220, 153])
+        elif self.currentStatus == Status.game or self.currentStatus == Status.fade:  # Make time tick
             buttons.drawbutton(self.currentScreen)
             self.currentScreen.blit(memory_text, (10, 20))
             pygame.draw.line(self.currentScreen, [0, 0, 0], [0, 70], [WIDTH, 70])
             self.cards.drawBoard(self.currentScreen)
             self.timer()
             Text(self.currentScreen, str(round(self.playtime, 1)), 40, (225, 0, 0), (self.screenRect.centerx-140, 32))
-
             if pause:
                 Text(self.currentScreen, 'GAME PAUSED', 70, (225, 0, 0), (self.screenRect.centerx-180, self.screenRect.centery))
             self.correctWrong()
             self.turnCards()
             self.ifOpened()
+            if self.currentStatus == Status.fade:
+                self.goFade()
             pygame.display.flip()
+            self.currentScreen.fill([255, 220, 153])
 
-        elif self.currentStatus == Status.end:  # TODO: Make green fade
-            self.currentScreen.fill([0, 207, 0])
+        elif self.currentStatus == Status.end:
+            self.currentScreen.fill([0, 255, 0])
             buttons.drawbutton(self.currentScreen)
             Text(self.currentScreen, 'Game completed!', 70, (0, 0, 0), (0, 0))
             pygame.display.flip()
