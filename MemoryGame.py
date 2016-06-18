@@ -38,13 +38,9 @@ sound_win = './sound/win.wav'
 cardSize = card_back.get_rect().size
 
 allCardsList = [card_fox, card_dachshund, card_bear, card_moose,
-
-                ]
-'''
-card_beaver, card_cat, card_duck, card_elephant,
+                card_beaver, card_cat, card_duck, card_elephant,
                 card_horse, card_leopard, card_rabbit, card_squirrel
-'''
-
+                ]
 
 def Text(screen, text, size, color, coords):
     lfont = pygame.font.SysFont('Arial Bold', size)
